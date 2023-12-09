@@ -3,14 +3,9 @@ def main
     ai = MatchBoxAi.new(question_count=10, gene_count=10)
     ai.dump
 
-    (1..).each do |n|
-        puts "==== #{n} times"
+    until ai.perfect_gene_exists?
         ai.next!
         ai.dump
-
-        if ai.perfect_gene_exists?
-            break
-        end
     end
 end
 
@@ -61,9 +56,12 @@ class MatchBoxAi
     def initialize(question_count, gene_count)
         @genes = self.class.random_genes(gene_count, question_count)
         @questions = Questions.new(question_count)
+        @generation = 1
     end
 
     def dump
+        puts "==== generation=#{@generation}"
+
         scored_genes(@genes).each do |gene, point|
             puts "#{gene} - #{point} point"
         end
@@ -86,6 +84,8 @@ class MatchBoxAi
 
         # 下位 2 個体を新たに生成した個体と入れ替える.
         @genes = genes[...-2] + [gene1, gene2]
+
+        @generation += 1
     end
 
     private
