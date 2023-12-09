@@ -36,21 +36,21 @@ class MatchBoxAi
     end
 
     def maximum_point
-        sorted_genes = ranked_genes(@genes, @answers)
-        sorted_genes[0].point(@answers)
+        genes = ranked_genes(@genes, @answers)
+        genes[0].point(@answers)
     end
 
     def next!
         # 点数の降順に並び替える.
-        sorted_genes = ranked_genes(@genes, @answers)
+        genes = ranked_genes(@genes, @answers)
 
         # 上位 2 個体を親として交叉, 突然変異をおこなう.
-        parent_gene1, parent_gene2 = sorted_genes.take(2)
-        gene1, gene2 = crossover(parent_gene1, parent_gene2)
+        gene1, gene2 = genes.take(2)
+        gene1, gene2 = crossover(gene1, gene2)
         gene1, gene2 = mutation(gene1), mutation(gene2)
 
         # 下位 2 個体を新たに生成した個体と入れ替える.
-        @genes = sorted_genes[...-2] + [gene1, gene2]
+        @genes = genes[...-2] + [gene1, gene2]
     end
 
     def dump
@@ -76,9 +76,9 @@ class MatchBoxAi
     # N-1 箱目と N 箱目の間を交叉する場所とする.
     # ただし, N が 11 以上の場合は交差しない.
     #
-    def crossover(parent_gene1, parent_gene2)
+    def crossover(gene1, gene2)
         i = rand(1..6) + rand(1..6)
-        parent_gene1.crossover(parent_gene2, i)
+        gene1.crossover(gene2, i)
     end
 
     #
