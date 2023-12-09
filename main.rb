@@ -1,8 +1,6 @@
 
 def main
-    answers = [3, 1, 2, 2, 2, 3, 1, 3, 3, 1]
-
-    ai = MatchBoxAi.new(10, answers)
+    ai = MatchBoxAi.new(question_count=10, gene_count=10)
     ai.dump
 
     (1..).each do |n|
@@ -16,33 +14,56 @@ def main
     end
 end
 
+class Questions
+
+    def initialize(n)
+        @correct_answers = n.times.map do
+            rand(1..3)
+        end
+    end
+
+    def score(answers)
+        correct_count(answers) * 10
+    end
+
+    private
+
+    def correct_count(answers)
+        answers.zip(@correct_answers).count do |answer, correct_answer|
+            answer == correct_answer
+        end
+    end
+
+end
+
 class MatchBoxAi
 
-    def self.random_match_boxes(n)
-        n.times.map do
+    def self.random_match_boxes(match_box_count)
+        match_box_count.times.map do
             MatchBox.new(rand(1..3))
         end
     end
 
-    def self.random_genes(n)
-        n.times.map do
-            Gene.new(random_match_boxes(10))
+    def self.random_genes(gene_count, match_box_count)
+        gene_count.times.map do
+            Gene.new(random_match_boxes(match_box_count))
         end
     end
 
-    def initialize(n, answers)
-        @genes = self.class.random_genes(n)
-        @answers = answers
+    def initialize(question_count, gene_count)
+        @genes = self.class.random_genes(gene_count, question_count)
+        @questions = Questions.new(question_count)
     end
 
     def maximum_point
-        genes = ranked_genes(@genes, @answers)
-        genes[0].point(@answers)
+        gene_point_pairs = scored_genes(@genes)
+        gene, point = gene_point_pairs[0]
+        point
     end
 
     def next!
         # 点数の降順に並び替える.
-        genes = ranked_genes(@genes, @answers)
+        genes = scored_genes(@genes).map(&:first)
 
         # 上位 2 個体を親として交叉, 突然変異をおこなう.
         gene1, gene2 = genes.take(2)
@@ -54,18 +75,21 @@ class MatchBoxAi
     end
 
     def dump
-        puts "answers = #{@answers.join(' ')}"
-        ranked_genes(@genes, @answers).each do |gene|
-            puts "#{gene} - #{gene.point(@answers)} point"
+        scored_genes(@genes).each do |gene, point|
+            puts "#{gene} - #{point} point"
         end
     end
 
     private
 
-    # 点数の降順に並べ替える.
-    def ranked_genes(genes, answers)
-        genes.sort_by do |gene|
-            -gene.point(answers)
+    # 点数の降順に整列された [gene, point] の配列.
+    def scored_genes(genes)
+        gene_point_pairs = genes.map do |gene|
+            [gene, @questions.score(gene.answers)]
+        end
+
+        gene_point_pairs.sort_by do |gene, point|
+            -point
         end
     end
 
@@ -112,10 +136,8 @@ Gene = Data.define(:match_boxes) do
         "Gene(#{object_id_string}, [#{match_counts_string}])"
     end
 
-    def point(answers)
-        match_boxes.zip(answers).reduce(0) do |point, (match_box, answer)|
-            match_box.match_count == answer ? point + 10 : point
-        end
+    def answers
+        match_boxes.map(&:match_count)
     end
 
     def crossover(target_gene, i)
