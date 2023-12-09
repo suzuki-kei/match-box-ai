@@ -9,7 +9,7 @@ def main
     end
 end
 
-class Questions
+class Examination
 
     POINT_FOR_EACH_QUESTION = 10
 
@@ -55,7 +55,7 @@ class MatchBoxAi
 
     def initialize(question_count, gene_count)
         @genes = self.class.random_genes(gene_count, question_count)
-        @questions = Questions.new(question_count)
+        @examination = Examination.new(question_count)
         @generation = 1
     end
 
@@ -69,7 +69,7 @@ class MatchBoxAi
 
     def perfect_gene_exists?
         @genes.any? do |gene|
-            @questions.perfect?(gene.answers)
+            @examination.perfect?(gene.answers)
         end
     end
 
@@ -93,7 +93,7 @@ class MatchBoxAi
     # 点数の降順に整列された [gene, point] の配列.
     def scored_genes(genes)
         gene_point_pairs = genes.map do |gene|
-            [gene, @questions.score(gene.answers)]
+            [gene, @examination.score(gene.answers)]
         end
 
         gene_point_pairs.sort_by do |gene, point|
