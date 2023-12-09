@@ -8,13 +8,15 @@ def main
         ai.next!
         ai.dump
 
-        if ai.maximum_point == 100
+        if ai.perfect_gene_exists?
             break
         end
     end
 end
 
 class Questions
+
+    POINT_FOR_EACH_QUESTION = 10
 
     def initialize(n)
         @correct_answers = n.times.map do
@@ -23,7 +25,13 @@ class Questions
     end
 
     def score(answers)
-        correct_count(answers) * 10
+        correct_count(answers) * POINT_FOR_EACH_QUESTION
+    end
+
+    def perfect?(answers)
+        answers.zip(@correct_answers).all? do |answer, correct_answer|
+            answer == correct_answer
+        end
     end
 
     private
@@ -53,6 +61,12 @@ class MatchBoxAi
     def initialize(question_count, gene_count)
         @genes = self.class.random_genes(gene_count, question_count)
         @questions = Questions.new(question_count)
+    end
+
+    def perfect_gene_exists?
+        @genes.any? do |gene|
+            @questions.perfect?(gene.answers)
+        end
     end
 
     def maximum_point
