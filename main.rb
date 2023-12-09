@@ -1,6 +1,6 @@
 
 def main
-    ai = MatchBoxAi.new(question_count=10, gene_count=10)
+    ai = new_match_box_ai
     ai.dump
 
     until ai.perfect_gene_exists?
@@ -9,18 +9,46 @@ def main
     end
 end
 
+def new_match_box_ai
+    examination = Examination.new(
+            number_of_questions=10,
+            number_of_options=3,
+            score_for_each_question=10)
+    MatchBoxAi.new(examination, number_of_genes=10)
+end
+
 class Examination
 
-    POINT_FOR_EACH_QUESTION = 10
+    # 設問の数.
+    attr_reader :number_of_questions
 
-    def initialize(n)
-        @correct_answers = n.times.map do
-            rand(1..3)
+    # 各設問における選択肢の数.
+    # どの設問も選択肢の数は同じとなる.
+    attr_reader :number_of_options
+
+    # 各設問の配点.
+    # どの設問も配点は同じとなる.
+    attr_reader :score_for_each_question
+
+    def self.random_answers(number_of_answers, number_of_options)
+        number_of_answers.times.map do
+            rand(1..number_of_options)
         end
     end
 
+    def initialize(number_of_questions, number_of_options, score_for_each_question)
+        @number_of_questions = number_of_questions
+        @number_of_options = number_of_options
+        @score_for_each_question = score_for_each_question
+        @correct_answers = self.class.random_answers(number_of_questions, number_of_options)
+    end
+
+    def options
+        (1 .. @number_of_options).to_a
+    end
+
     def score(answers)
-        correct_count(answers) * POINT_FOR_EACH_QUESTION
+        correct_count(answers) * @score_for_each_question
     end
 
     def perfect?(answers)
@@ -41,21 +69,24 @@ end
 
 class MatchBoxAi
 
-    def self.random_match_boxes(match_box_count)
-        match_box_count.times.map do
-            MatchBox.new(rand(1..3))
+    def self.random_match_boxes(examination)
+        # 設問数の数だけマッチ箱が必要.
+        number_of_match_boxes = examination.number_of_questions
+
+        number_of_match_boxes.times.map do
+            MatchBox.new(rand(1..examination.number_of_options))
         end
     end
 
-    def self.random_genes(gene_count, match_box_count)
-        gene_count.times.map do
-            Gene.new(random_match_boxes(match_box_count))
+    def self.random_genes(number_of_genes, examination)
+        number_of_genes.times.map do
+            Gene.new(random_match_boxes(examination))
         end
     end
 
-    def initialize(question_count, gene_count)
-        @genes = self.class.random_genes(gene_count, question_count)
-        @examination = Examination.new(question_count)
+    def initialize(examination, number_of_genes)
+        @examination = examination
+        @genes = self.class.random_genes(number_of_genes, examination)
         @generation = 1
     end
 
@@ -104,33 +135,60 @@ class MatchBoxAi
     #
     # 交叉 (crossover)
     #
-    # サイコロを 2 つ振り, 出た目の合計を N とする.
-    # N-1 箱目と N 箱目の間を交叉する場所とする.
-    # ただし, N が 11 以上の場合は交差しない.
+    # 書籍では設問数を 10 個固定とし, 以下のルールで交叉をおこなっている.
+    #  * サイコロを 2 つ振り, 出た目の合計を N とする.
+    #  * N-1 箱目と N 箱目の間を交叉する場所とする.
+    #  * ただし, N が 11 以上の場合は交差しない.
+    #
+    # 設問数や選択肢の数を変更できるように実装したので, 次のルールで交叉をおこなう.
+    #  * 設問数を m とする.
+    #  * (m * 1.2) の小数点以下を切り捨てた値を n とする.
+    #  * [1, n] の範囲で乱数を生成し, その値を i とする.
+    #  * i-1 箱目と i 箱目の間を交叉する場所とする.
+    #  * ただし, i が M より大きい場合は交差しない.
     #
     def crossover(gene1, gene2)
-        i = rand(1..6) + rand(1..6)
-        gene1.crossover(gene2, i)
+        m = @examination.number_of_questions
+        n = (m * 1.2).to_i
+        i = rand(1..n)
+
+        if i <= m
+            gene1.crossover(gene2, i)
+        else
+            [gene1, gene2]
+        end
     end
 
     #
     # 突然変異 (mutation)
     #
-    # サイコロを 2 つ振り, 出た目の合計を N とする.
-    # N 箱目のマッチ箱に突然変異を起こす.
-    # ただし, N=11 の場合は N=1 に置き換え, N=12 の場合は突然変異を起こさない.
+    # 書籍では設問数を 10 個固定とし, 以下のルールで突然変異をおこなっている.
+    #  * サイコロを 2 つ振り, 出た目の合計を N とする.
+    #  * N 箱目のマッチ箱に突然変異を起こす.
+    #  * ただし, N=11 の場合は N=1 に置き換え, N=12 の場合は突然変異を起こさない.
+    #
+    # 設問数や選択肢の数を変更できるように実装したので, 次のルールで突然変異をおこなう.
+    #  * 設問数を m とする.
+    #  * (m * 1.1) の小数点以下を切り捨てた値を n とする.
+    #  * [1, n] の範囲で乱数を生成し, その値を i とする.
+    #  * i 箱目のマッチ箱に突然変異を起こす.
+    #  * ただし, i が m より大きい場合は突然変異を起こさない.
     #
     def mutation(gene)
-        i = rand(1..6) + rand(1..6)
+        m = @examination.number_of_questions
+        n = (m * 1.1).to_i
+        i = rand(1..n)
 
-        case i
-            when 2..10
-                gene.mutation(i - 1)
-            when 11
-                gene.mutation(0)
-            else
-                gene
+        if i <= m
+            gene.mutation(i - 1, mutation_map)
+        else
+            gene
         end
+    end
+
+    def mutation_map
+        options = @examination.options
+        Hash[options.zip(options.rotate)]
     end
 
 end
@@ -160,17 +218,16 @@ class Gene
         [gene1, gene2]
     end
 
-    def mutation(i)
+    def mutation(i, mutation_map)
         mutated_match_boxes = @match_boxes.clone
-        mutated_match_boxes[i] = mutate_match_box(@match_boxes[i])
+        mutated_match_boxes[i] = mutate_match_box(@match_boxes[i], mutation_map)
         Gene.new(mutated_match_boxes)
     end
 
     private
 
-    def mutate_match_box(match_box)
-        mutation_rules = {1 => 2, 2 => 3, 3 => 1}
-        mutated_match_count = mutation_rules[match_box.match_count]
+    def mutate_match_box(match_box, mutation_map)
+        mutated_match_count = mutation_map[match_box.match_count]
         MatchBox.new(mutated_match_count)
     end
 
