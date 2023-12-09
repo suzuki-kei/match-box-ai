@@ -127,28 +127,34 @@ class MatchBoxAi
 
 end
 
-Gene = Data.define(:match_boxes) do
+class Gene
+
+    attr_reader :match_boxes
+
+    def initialize(match_boxes)
+        @match_boxes = match_boxes
+    end
 
     def to_s
         integer_byte_size = 0.size
         object_id_string = sprintf('0x%0*x', integer_byte_size * 2, object_id)
-        match_counts_string = match_boxes.map(&:match_count).join(' ')
+        match_counts_string = @match_boxes.map(&:match_count).join(' ')
         "Gene(#{object_id_string}, [#{match_counts_string}])"
     end
 
     def answers
-        match_boxes.map(&:match_count)
+        @match_boxes.map(&:match_count)
     end
 
     def crossover(target_gene, i)
-        gene1 = Gene.new(match_boxes.take(i) + target_gene.match_boxes.drop(i))
-        gene2 = Gene.new(target_gene.match_boxes.take(i) + match_boxes.drop(i))
+        gene1 = Gene.new(@match_boxes.take(i) + target_gene.match_boxes.drop(i))
+        gene2 = Gene.new(target_gene.match_boxes.take(i) + @match_boxes.drop(i))
         [gene1, gene2]
     end
 
     def mutation(i)
-        mutated_match_boxes = match_boxes.clone
-        mutated_match_boxes[i] = mutate_match_box(match_boxes[i])
+        mutated_match_boxes = @match_boxes.clone
+        mutated_match_boxes[i] = mutate_match_box(@match_boxes[i])
         Gene.new(mutated_match_boxes)
     end
 
