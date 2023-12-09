@@ -48,7 +48,7 @@ class Examination
     end
 
     def score(answers)
-        correct_count(answers) * @score_for_each_question
+        count_correct_answers(answers) * @score_for_each_question
     end
 
     def perfect?(answers)
@@ -59,7 +59,7 @@ class Examination
 
     private
 
-    def correct_count(answers)
+    def count_correct_answers(answers)
         answers.zip(@correct_answers).count do |answer, correct_answer|
             answer == correct_answer
         end
@@ -204,12 +204,12 @@ class Gene
     def to_s
         integer_byte_size = 0.size
         object_id_string = sprintf('0x%0*x', integer_byte_size * 2, object_id)
-        match_counts_string = @match_boxes.map(&:match_count).join(' ')
-        "Gene(#{object_id_string}, [#{match_counts_string}])"
+        number_of_matches_string = @match_boxes.map(&:number_of_matches).join(' ')
+        "Gene(#{object_id_string}, [#{number_of_matches_string}])"
     end
 
     def answers
-        @match_boxes.map(&:match_count)
+        @match_boxes.map(&:number_of_matches)
     end
 
     def crossover(target_gene, i)
@@ -227,13 +227,12 @@ class Gene
     private
 
     def mutate_match_box(match_box, mutation_map)
-        mutated_match_count = mutation_map[match_box.match_count]
-        MatchBox.new(mutated_match_count)
+        MatchBox.new(mutation_map[match_box.number_of_matches])
     end
 
 end
 
-MatchBox = Data.define(:match_count)
+MatchBox = Data.define(:number_of_matches)
 
 main if $0 == __FILE__
 
