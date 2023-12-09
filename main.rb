@@ -75,12 +75,6 @@ class MatchBoxAi
         end
     end
 
-    def maximum_point
-        gene_point_pairs = scored_genes(@genes)
-        gene, point = gene_point_pairs[0]
-        point
-    end
-
     def next!
         # 点数の降順に並び替える.
         genes = scored_genes(@genes).map(&:first)
