@@ -7,7 +7,7 @@ def main
 
     (1..).each do |n|
         puts "==== #{n} times"
-        ai.next
+        ai.next!
         ai.dump
 
         if ai.maximum_point == 100
@@ -40,7 +40,7 @@ class MatchBoxAi
         sorted_genes[0].point(@answers)
     end
 
-    def next
+    def next!
         # 点数の降順に並び替える.
         sorted_genes = ranked_genes(@genes, @answers)
 
