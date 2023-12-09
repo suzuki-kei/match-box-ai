@@ -49,7 +49,7 @@ class MatchBoxAi
         gene1, gene2 = crossover(parent_gene1, parent_gene2)
         gene1, gene2 = mutation(gene1), mutation(gene2)
 
-        # 下位 2 個体を新たに生成した個体に入れ替える.
+        # 下位 2 個体を新たに生成した個体と入れ替える.
         @genes = sorted_genes[...-2] + [gene1, gene2]
     end
 
