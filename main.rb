@@ -166,6 +166,8 @@ class Gene
         Gene.new(mutated_match_boxes)
     end
 
+    private
+
     def mutate_match_box(match_box)
         mutation_rules = {1 => 2, 2 => 3, 3 => 1}
         mutated_match_count = mutation_rules[match_box.match_count]
