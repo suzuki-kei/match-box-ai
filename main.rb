@@ -63,6 +63,12 @@ class MatchBoxAi
         @questions = Questions.new(question_count)
     end
 
+    def dump
+        scored_genes(@genes).each do |gene, point|
+            puts "#{gene} - #{point} point"
+        end
+    end
+
     def perfect_gene_exists?
         @genes.any? do |gene|
             @questions.perfect?(gene.answers)
@@ -86,12 +92,6 @@ class MatchBoxAi
 
         # 下位 2 個体を新たに生成した個体と入れ替える.
         @genes = genes[...-2] + [gene1, gene2]
-    end
-
-    def dump
-        scored_genes(@genes).each do |gene, point|
-            puts "#{gene} - #{point} point"
-        end
     end
 
     private
