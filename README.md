@@ -6,5 +6,6 @@
 
 # 実行方法
 
-    make run
+    # 遺伝的アルゴリズム
+    make -C genetic-algorithm run
 
