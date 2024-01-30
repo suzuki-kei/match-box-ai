@@ -9,3 +9,6 @@
     # 遺伝的アルゴリズム
     make -C genetic-algorithm run
 
+    # ニューラルネットワーク
+    make -C neural-network run
+
