@@ -1,20 +1,20 @@
 
 def main
-    new_match_box_ai.training
+    new_match_box_ai.train
 end
 
 def new_match_box_ai
     items = [
-        Item.new(1, price=310), # お菓子 1
-        Item.new(2, price=220), # お菓子 2
-        Item.new(3, price=70),  # お菓子 3
+        Item.new(id=1, price=310), # お菓子 1
+        Item.new(id=2, price=220), # お菓子 2
+        Item.new(id=3, price=70),  # お菓子 3
     ]
 
     match_boxes = [
-        MatchBox.new(1, threshold=1, accumulated=0), # マッチ箱 B
-        MatchBox.new(2, threshold=3, accumulated=0), # マッチ箱 C
-        MatchBox.new(3, threshold=8, accumulated=0), # マッチ箱 D
-        MatchBox.new(4, threshold=6, accumulated=0), # マッチ箱 A
+        MatchBox.new(id=1, threshold=1), # マッチ箱 B
+        MatchBox.new(id=2, threshold=3), # マッチ箱 C
+        MatchBox.new(id=3, threshold=8), # マッチ箱 D
+        MatchBox.new(id=4, threshold=6), # マッチ箱 A
     ]
 
     # どの商品を購入すると, どのマッチ箱が発火するか.
@@ -31,7 +31,11 @@ def new_match_box_ai
         match_boxes[2].id => match_boxes[3],
     }
 
-    MatchBoxAi.new(items, match_boxes, item_id_to_match_box_map, match_box_id_to_match_box_map)
+    MatchBoxAi.new(
+        items,
+        match_boxes,
+        item_id_to_match_box_map,
+        match_box_id_to_match_box_map)
 end
 
 # 商品
@@ -40,12 +44,16 @@ Item = Data.define(:id, :price)
 # マッチ箱
 MatchBox = Struct.new(:id, :threshold, :accumulated) do
 
-    def reset!
-        self.accumulated = 0
+    def initialize(id, threshold)
+        super(id, threshold, accumulated=0)
     end
 
     def activate!
         self.accumulated = self.threshold
+    end
+
+    def deactivate!
+        self.accumulated = 0
     end
 
     def activated?
@@ -66,22 +74,27 @@ class MatchBoxAi
     end
 
     def judge(purchase_items)
-        propagate(purchase_items)
+        deactivate!
+        activate!(purchase_items)
         @terminal_match_box.activated?
     end
 
-    def training(max_iterations=10)
+    def train(max_iterations=10)
         puts '==== initial state'
         dump
 
         max_iterations.times do |i|
-            if training_completed?
-                puts 'training completed.'
+            if trained_perfectly?
+                puts 'trained perfectly.'
                 break
             end
 
-            puts "==== training - #{i + 1} iterations"
-            training_iteration
+            puts "==== iteration=#{i + 1}"
+            all_combinations_of_purchase_items.each do |purchase_items|
+                deactivate!
+                activate!(purchase_items)
+                update_thresholds!(purchase_items)
+            end
             dump
         end
     end
@@ -103,44 +116,43 @@ class MatchBoxAi
         puts "thresholds=[#{thresholds}]"
 
         all_combinations_of_purchase_items.each do |purchase_items|
-            propagate(purchase_items)
+            deactivate!
+            activate!(purchase_items)
             total_price = purchase_items.map(&:price).sum
             puts "    total_price=#{total_price}, activated=#{@terminal_match_box.activated?}"
         end
     end
 
-    def training_completed?
+    # 全ての入力に対して正答するように学習済みであれば true.
+    def trained_perfectly?
         all_combinations_of_purchase_items.all? do |purchase_items|
-            propagate(purchase_items)
+            deactivate!
+            activate!(purchase_items)
             total_price = purchase_items.sum(&:price)
             total_price > 500 == @terminal_match_box.activated?
         end
     end
 
-    def training_iteration
-        all_combinations_of_purchase_items.each do |purchase_items|
-            propagate(purchase_items)
-            back_propagate(purchase_items)
-        end
+    def deactivate!
+        @match_boxes.each(&:deactivate!)
     end
 
-    def propagate(purchase_items)
-        @match_boxes.each(&:reset!)
-        activated_match_boxes = @item_id_to_match_box_map.values_at(*purchase_items.map(&:id))
-        activated_match_boxes.each(&:activate!)
+    def activate!(purchase_items)
+        match_boxes = @item_id_to_match_box_map.values_at(*purchase_items.map(&:id))
+        match_boxes.each(&:activate!)
 
-        until activated_match_boxes.empty?
-            activated_match_boxes = activated_match_boxes.reduce([]) do |activated_match_boxes, match_box|
+        until match_boxes.empty?
+            match_boxes = match_boxes.reduce([]) do |match_boxes, match_box|
                 if next_match_box = @match_box_id_to_match_box_map[match_box.id]
                     next_match_box.accumulated += match_box.threshold
-                    activated_match_boxes << next_match_box
+                    match_boxes << next_match_box
                 end
-                activated_match_boxes
+                match_boxes
             end
         end
     end
 
-    def back_propagate(purchase_items)
+    def update_thresholds!(purchase_items)
         # 間違いタイプ 1
         #     正しい買い方だったのに NG と判断してしまった場合.
         #     -> マッチ箱 B-D のマッチ棒を 1 本減らし, マッチ箱 A のマッチ棒を 1 本増やす.
