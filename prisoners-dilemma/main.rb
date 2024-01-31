@@ -42,24 +42,40 @@ def demonstration2
     strategies = all_strategies
     name_width = strategies.map(&:name).map(&:size).max
 
-    strategies.each do |strategy|
-        points = 10000.times.map do
+    puts 'probability of occurences'
+    total_weight = STRATEGY_TO_WEIGHT_MAP.values.sum
+    STRATEGY_TO_WEIGHT_MAP.each do |strategy, weight|
+        weight * 100.0 / total_weight
+        puts sprintf('    %-*s ... %5.1f%%', name_width, strategy.name, weight * 100.0 / total_weight)
+    end
+
+    strategy_point_pairs = strategies.map do |strategy|
+        points = 1000.times.map do
             game = Game.new(strategy, new_strategy_randomly)
             point, _ = game.play!(16)
             point
         end
 
-        total_point = points.sum
-        puts sprintf('%-*s ... %4d point', name_width, strategy.name, total_point)
+        [strategy, points.sum]
+    end
+
+    puts 'total points'
+    strategy_point_pairs.sort_by(&:last).reverse.each do |strategy, point|
+        puts sprintf('    %-*s ... %4d point', name_width, strategy.name, point)
     end
 end
 
 STRATEGY_TO_WEIGHT_MAP = {}.tap do |map|
-    map[StrategyRandom.new]          = 5
-    map[StrategyAlwaysPositive.new]  = 1
-    map[StrategyAlwaysNegative.new]  = 5
-    map[StrategyMirror.new]          = 5
-    map[StrategyMixed.new(map.keys)] = 5
+    map[StrategyRandom.new]            = 100
+    map[StrategyAlwaysPositive.new]    = 20
+    map[StrategyAlwaysNegative.new]    = 100
+    map[StrategyMirror.new]            = 100
+    map[StrategyToggleOnWin.new]       = 100
+    map[StrategyToggleOnLose.new]      = 100
+    map[StrategyToggleOnDraw.new]      = 100
+    map[StrategyToggleOnRandom.new]    = 100
+    map[StrategyToggleOnLoseTwice.new] = 100
+    map[StrategyMixed.new(map.keys)]   = 100
 end
 
 def all_strategies

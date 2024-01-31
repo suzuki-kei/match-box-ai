@@ -27,8 +27,8 @@ class Game
 
     def next_actions
         [
-            @player1.next_action(opposition=@player2),
-            @player2.next_action(opposition=@player1),
+            @player1.next_action(opposition_player=@player2),
+            @player2.next_action(opposition_player=@player1),
         ]
     end
 
@@ -63,8 +63,8 @@ class Player
         @points.sum
     end
 
-    def next_action(opposition)
-        @strategy.next_action(opposition)
+    def next_action(opposition_player)
+        @strategy.next_action(self, opposition_player)
     end
 
 end
@@ -75,7 +75,7 @@ class StrategyBase
         self.class.name.gsub(/^Strategy/, '')
     end
 
-    def next_action(opposition)
+    def next_action(own_player, opposition_player)
         raise 'Not implemented.'
     end
 
@@ -88,7 +88,7 @@ end
 # ランダム
 class StrategyRandom < StrategyBase
 
-    def next_action(opposition)
+    def next_action(own_player, opposition_player)
         random_action
     end
 
@@ -97,7 +97,7 @@ end
 # 常に ACTION_POSITIVE
 class StrategyAlwaysPositive < StrategyBase
 
-    def next_action(opposition)
+    def next_action(own_player, opposition_player)
         ACTION_POSITIVE
     end
 
@@ -106,7 +106,7 @@ end
 # 常に ACTION_NEGATIVE
 class StrategyAlwaysNegative < StrategyBase
 
-    def next_action(opposition)
+    def next_action(own_player, opposition_player)
         ACTION_NEGATIVE
     end
 
@@ -115,8 +115,88 @@ end
 # オウム返し
 class StrategyMirror < StrategyBase
 
-    def next_action(opposition)
-        opposition.actions[-1] || ACTION_POSITIVE
+    def next_action(own_player, opposition_player)
+        opposition_player.actions[-1] || ACTION_POSITIVE
+    end
+
+end
+
+# 勝ったら戦略を変更する
+class StrategyToggleOnWin < StrategyBase
+
+    def next_action(own_player, opposition_player)
+        case
+            when own_player.actions.empty?
+                ACTION_POSITIVE
+            when own_player.points[-1] > opposition_player.points[-1]
+                own_player.actions[-1] == ACTION_POSITIVE ? ACTION_NEGATIVE : ACTION_POSITIVE
+            else
+                own_player.actions[-1]
+        end
+    end
+
+end
+
+# 負けたら戦略を変更する
+class StrategyToggleOnLose < StrategyBase
+
+    def next_action(own_player, opposition_player)
+        case
+            when own_player.actions.empty?
+                ACTION_POSITIVE
+            when own_player.points[-1] < opposition_player.points[-1]
+                own_player.actions[-1] == ACTION_POSITIVE ? ACTION_NEGATIVE : ACTION_POSITIVE
+            else
+                own_player.actions[-1]
+        end
+    end
+
+end
+
+# 引き分けたら戦略を変更する
+class StrategyToggleOnDraw < StrategyBase
+
+    def next_action(own_player, opposition_player)
+        case
+            when own_player.actions.empty?
+                ACTION_POSITIVE
+            when own_player.points[-1] == opposition_player.points[-1]
+                own_player.actions[-1] == ACTION_POSITIVE ? ACTION_NEGATIVE : ACTION_POSITIVE
+            else
+                own_player.actions[-1]
+        end
+    end
+
+end
+
+# 一定の確率で戦略を変更する
+class StrategyToggleOnRandom < StrategyBase
+
+    def next_action(own_player, opposition_player)
+        case
+            when own_player.actions.empty?
+                ACTION_POSITIVE
+            when rand < 0.1
+                own_player.actions[-1] == ACTION_POSITIVE ? ACTION_NEGATIVE : ACTION_POSITIVE
+            else
+                own_player.actions[-1]
+        end
+    end
+
+end
+
+# 2 連敗したら戦略を変更する
+class StrategyToggleOnLoseTwice < StrategyBase
+
+    def next_action(own_player, opposition_player)
+        case
+            when own_player.actions.size < 2
+                ACTION_POSITIVE
+            when own_player.points[-1] < opposition_player.points[-1] && own_player.points[-2] < opposition_player.points[-2]
+                own_player.actions[-1] == ACTION_POSITIVE ? ACTION_NEGATIVE : ACTION_POSITIVE
+            else
+                own_player.actions[-1]
+        end
     end
 
 end
@@ -128,8 +208,8 @@ class StrategyMixed < StrategyBase
         @strategies = strategies.clone
     end
 
-    def next_action(opposition)
-        @strategies.sample.next_action(opposition)
+    def next_action(own_player, opposition_player)
+        @strategies.sample.next_action(own_player, opposition_player)
     end
 
 end
