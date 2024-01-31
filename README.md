@@ -12,3 +12,6 @@
     # ニューラルネットワーク
     make -C neural-network run
 
+    # 囚人のジレンマ
+    make -C prisoners-dilemma run
+
