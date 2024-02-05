@@ -15,3 +15,6 @@
     # 囚人のジレンマ
     make -C prisoners-dilemma run
 
+    # 強化学習
+    make -C reinforcement-learning run
+
